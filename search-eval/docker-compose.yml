@@ -1,0 +1,33 @@
+version: "3.8"
+# Reference deployment for a Docker environment. This workspace runs the
+# same services user-space instead (see scripts/start_infra.sh).
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: searcheval
+      POSTGRES_USER: searcheval
+      POSTGRES_PASSWORD: searcheval
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+
+  opensearch:
+    image: opensearchproject/opensearch:2.13.0
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms1g -Xmx1g"
+    ports: ["9200:9200"]
+    volumes: ["osdata:/usr/share/opensearch/data"]
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://searcheval:searcheval@postgres:5432/searcheval
+      OPENSEARCH_URL: http://opensearch:9200
+    ports: ["8000:8000"]
+    depends_on: [postgres, opensearch]
+
+volumes:
+  pgdata:
+  osdata:
